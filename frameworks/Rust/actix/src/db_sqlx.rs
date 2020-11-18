@@ -43,7 +43,7 @@ impl Handler<RandomWorld> for DbExecutor {
         let random_id = self.rng.gen_range(1, 10_001);
         Box::pin(
             async {
-                sqlx::query_as!(models::World, "select * from world where id=$1", random_id).fetch_one(&self.conn)
+                sqlx::query_as::<_, models::World>("select * from world where id=$1").bind(random_id).fetch_one(&self.conn)
             }
         )
     }
@@ -64,7 +64,7 @@ impl Handler<RandomWorlds> for DbExecutor {
                 let mut worlds = Vec::with_capacity(msg.0 as usize);
                 for _ in 0..msg.0 {
                     let w_id = self.rng.gen_range(1, 10_001);
-                    let w = sqlx::query_as!(models::World, "select * from world where id=$1", w_id).fetch_one(&self.conn)?;
+                    let w = sqlx::<_, models::World>("select * from world where id=$1").bind(w_id).fetch_one(&self.conn)?;
                     worlds.push(w)
                 }
                 Ok(worlds)
@@ -88,7 +88,7 @@ impl Handler<UpdateWorld> for DbExecutor {
                 let mut worlds = Vec::with_capacity(msg.0 as usize);
                 for _ in 0..msg.0 {
                     let w_id: i32 = self.rng.gen_range(1, 10_001);
-                    let mut w = sqlx::query_as!(models::World, "select * from world where id=$1", w_id).fetch_one(&self.conn)?;
+                    let mut w = sqlx::<_, models::World>("select * from world where id=$1").bind(w_id).fetch_one(&self.conn)?;
                     w.randomnumber = self.rng.gen_range(1, 10_001);
                     worlds.push(w);
                 }
@@ -96,7 +96,7 @@ impl Handler<UpdateWorld> for DbExecutor {
 
                 let _ = self.conn.transaction::<(), io::Error, _>(|| {
                     for w in &worlds {
-                        let _ = sqlx::query!("update world set randomnumber=$1 where id=$2", w.randomnumber, w.id).execute(&self.conn).await?;
+                        let _ = sqlx::query("update world set randomnumber=$1 where id=$2").bind(w.randomnumber).bind(w.id).execute(&self.conn).await?;
                     }
                     Ok(())
                 });
@@ -114,7 +114,7 @@ impl Message for TellFortune {
 }
 
 impl Handler<TellFortune> for DbExecutor {
-    type Result = ResponseFuture<io::Result<Vec<models::Fortune>>;
+    type Result = ResponseFuture<io::Result<Vec<models::Fortune>>>;
 
     fn handle(&mut self, _: TellFortune, _: &mut Self::Context) -> Self::Result {
         Box::pin(
