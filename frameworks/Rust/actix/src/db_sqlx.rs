@@ -64,7 +64,7 @@ impl Handler<RandomWorlds> for DbExecutor {
                 let mut worlds = Vec::with_capacity(msg.0 as usize);
                 for _ in 0..msg.0 {
                     let w_id = self.rng.gen_range(1, 10_001);
-                    let w = sqlx::<_, models::World>("select * from world where id=$1").bind(w_id).fetch_one(&self.conn)?;
+                    let w = sqlx::query_as::<_, models::World>("select * from world where id=$1").bind(w_id).fetch_one(&self.conn)?;
                     worlds.push(w)
                 }
                 Ok(worlds)
@@ -88,7 +88,7 @@ impl Handler<UpdateWorld> for DbExecutor {
                 let mut worlds = Vec::with_capacity(msg.0 as usize);
                 for _ in 0..msg.0 {
                     let w_id: i32 = self.rng.gen_range(1, 10_001);
-                    let mut w = sqlx::<_, models::World>("select * from world where id=$1").bind(w_id).fetch_one(&self.conn)?;
+                    let mut w = sqlx::query_as::<_, models::World>("select * from world where id=$1").bind(w_id).fetch_one(&self.conn)?;
                     w.randomnumber = self.rng.gen_range(1, 10_001);
                     worlds.push(w);
                 }
@@ -119,7 +119,7 @@ impl Handler<TellFortune> for DbExecutor {
     fn handle(&mut self, _: TellFortune, _: &mut Self::Context) -> Self::Result {
         Box::pin(
             async {
-                let items = sqlx::query_as!(models::Fortune, "select * from fortune").fetch_all(&self.conn).await?;
+                let items = sqlx::query_as::<_, models::Fortune>("select * from fortune").fetch_all(&self.conn).await?;
                 Ok(items)
             }
         )
